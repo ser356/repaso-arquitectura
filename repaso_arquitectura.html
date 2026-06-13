@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repaso · Arquitectura de Computadores</title>
+<style>
+  :root{
+    --bg:#0e1016;
+    --surface:#171a23;
+    --surface-2:#1f2430;
+    --line:rgba(255,255,255,.09);
+    --ink:#e7eaf0;
+    --muted:#97a0b2;
+    --cyan:#5ec8d8;
+    --amber:#e8b75a;
+    --green:#7bd88f;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:28px 18px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+
+  header{margin-bottom:22px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--cyan);margin:0 0 6px;
+  }
+  h1{font-size:clamp(22px,5vw,30px);margin:0;font-weight:650;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:14px;margin-top:6px}
+
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin:22px 0 18px;border-bottom:1px solid var(--line)}
+  .tab{
+    appearance:none;background:none;border:0;cursor:pointer;
+    font-family:var(--mono);font-size:13px;color:var(--muted);
+    padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--cyan)}
+  .tab:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:4px}
+
+  .panel{display:none}
+  .panel.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* filter chips */
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+  .chip{
+    appearance:none;cursor:pointer;font-family:var(--mono);font-size:12px;
+    color:var(--muted);background:var(--surface);border:1px solid var(--line);
+    padding:6px 11px;border-radius:999px;
+  }
+  .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.2)}
+  .chip[aria-pressed="true"]{color:var(--bg);background:var(--cyan);border-color:var(--cyan);font-weight:600}
+  .chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  /* flashcard */
+  .counter{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .counter b{color:var(--ink)}
+  .card-scene{perspective:1400px}
+  .card{
+    position:relative;width:100%;min-height:230px;cursor:pointer;
+    transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.7,.2,1);
+  }
+  .card.flipped{transform:rotateY(180deg)}
+  .face{
+    position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border:1px solid var(--line);border-radius:16px;padding:26px 24px;
+    display:flex;flex-direction:column;justify-content:center;
+    background:var(--surface);
+  }
+  .face .tag{
+    position:absolute;top:14px;left:18px;font-family:var(--mono);font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);
+  }
+  .face .hint{
+    position:absolute;bottom:14px;right:18px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+  }
+  .front{background:var(--surface)}
+  .back{transform:rotateY(180deg);background:var(--surface-2)}
+  .q{font-size:18px;font-weight:600;letter-spacing:-.01em}
+  .a{font-size:15.5px;color:#dfe4ee}
+  .a code, .q code{font-family:var(--mono);background:rgba(232,183,90,.12);color:var(--amber);padding:1px 5px;border-radius:5px;font-size:.92em}
+
+  /* nav */
+  .nav{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .btn{
+    appearance:none;cursor:pointer;font-family:var(--mono);font-size:13px;
+    background:var(--surface);color:var(--ink);border:1px solid var(--line);
+    padding:10px 14px;border-radius:10px;flex:1;min-width:84px;
+  }
+  .btn:hover{border-color:rgba(255,255,255,.25)}
+  .btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .btn.accent{color:var(--green);border-color:rgba(123,216,143,.35)}
+  .btn.ghost{flex:0 0 auto;color:var(--muted)}
+  .done-msg{text-align:center;color:var(--muted);font-size:14px;padding:40px 0}
+  .done-msg b{color:var(--green)}
+
+  /* problems */
+  .prob{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:12px;overflow:hidden}
+  .prob-head{padding:16px 18px}
+  .prob-cat{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:7px}
+  .prob-q{font-size:15px}
+  .prob-q code{font-family:var(--mono);background:rgba(94,200,216,.12);color:var(--cyan);padding:1px 5px;border-radius:5px;font-size:.9em}
+  .reveal{
+    appearance:none;cursor:pointer;font-family:var(--mono);font-size:12.5px;
+    background:none;border:1px solid var(--line);color:var(--cyan);
+    padding:7px 12px;border-radius:8px;margin-top:13px;
+  }
+  .reveal:hover{border-color:var(--cyan)}
+  .reveal:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .sol{
+    display:none;padding:0 18px 18px;border-top:1px solid var(--line);margin-top:2px;
+  }
+  .sol.open{display:block;animation:fade .2s ease}
+  .sol-inner{padding-top:14px;font-size:14.5px;color:#dde2ec}
+  .sol-inner code{font-family:var(--mono);background:rgba(232,183,90,.12);color:var(--amber);padding:1px 5px;border-radius:5px;font-size:.9em}
+  .sol-inner .step{margin:5px 0}
+  .sol-inner .res{font-family:var(--mono);color:var(--green);margin-top:9px;font-weight:600}
+
+  @media (prefers-reduced-motion:reduce){
+    .card{transition:none}*{animation:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Repaso interactivo</p>
+    <h1>Arquitectura de Computadores</h1>
+    <p class="sub">Temas 1–5 · paralelismo, segmentación, dependencias, superescalares y memoria.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="cards">Flashcards</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="probs">Problemas</button>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <section class="panel active" id="cards" role="tabpanel">
+    <div class="chips" id="chips"></div>
+    <div id="deck-area">
+      <div class="counter">
+        <span>Carta <b id="pos">1</b> / <span id="total">0</span></span>
+        <span id="remaining"></span>
+      </div>
+      <div class="card-scene">
+        <div class="card" id="card" tabindex="0" role="button" aria-label="Voltear carta">
+          <div class="face front">
+            <span class="tag" id="f-tag"></span>
+            <div class="q" id="f-q"></div>
+            <span class="hint">toca para ver la respuesta</span>
+          </div>
+          <div class="face back">
+            <span class="tag">Respuesta</span>
+            <div class="a" id="f-a"></div>
+            <span class="hint">toca para volver</span>
+          </div>
+        </div>
+      </div>
+      <div class="nav">
+        <button class="btn ghost" id="prev">←</button>
+        <button class="btn accent" id="know">La sé ✓</button>
+        <button class="btn" id="next">Siguiente →</button>
+      </div>
+      <div class="nav">
+        <button class="btn ghost" id="undo" style="flex:1;display:none">↶ Deshacer</button>
+        <button class="btn ghost" id="shuffle" style="flex:1">Barajar</button>
+        <button class="btn ghost" id="reset" style="flex:1">Reiniciar</button>
+      </div>
+    </div>
+    <div class="done-msg" id="done" style="display:none">
+      <b>¡Mazo completado!</b><br>Has marcado todas como sabidas.<br>
+      <div class="nav" style="margin-top:16px;max-width:320px;margin-left:auto;margin-right:auto">
+        <button class="btn" id="undo2" style="flex:1">↶ Deshacer última</button>
+        <button class="btn" id="reset2" style="flex:1">Volver a empezar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEMS -->
+  <section class="panel" id="probs" role="tabpanel">
+    <div id="prob-list"></div>
+  </section>
+</div>
+
+<script>
+/* ---------- DATOS ---------- */
+const FLASHCARDS = [
+  {t:"Tema 1", q:"¿Qué es el procesamiento paralelo?", a:"Forma de procesamiento que favorece los procesos concurrentes: sucesos paralelos (distintos recursos a la vez), simultáneos (mismo instante) o solapados (intervalos superpuestos)."},
+  {t:"Tema 1", q:"Tres formas de introducir paralelismo", a:"<b>Funcional</b> (distintas unidades a la vez), <b>temporal</b>/segmentación (suboperaciones solapadas) y <b>espacial</b>/replicación (varios procesadores con datos distintos)."},
+  {t:"Tema 1", q:"Latencia vs productividad", a:"<b>Latencia</b> = tiempo en terminar una tarea. <b>Productividad</b> = cantidad de trabajo realizado en un tiempo dado."},
+  {t:"Tema 1", q:"Ley de Amdahl (la idea)", a:"La mejora global está limitada por la fracción de tiempo que <b>sí</b> usa el modo rápido. Aunque aceleres infinito esa parte, la parte no mejorada pone el techo."},
+  {t:"Tema 1", q:"Fórmula de Amdahl", a:"<code>speedup = 1 / ((1 − Fm) + Fm/Sp)</code><br>Fm = fracción de tiempo mejorada · Sp = aceleración de esa parte."},
+  {t:"Tema 1", q:"¿Qué es el CPI?", a:"Ciclos por instrucción = <code>nº ciclos / nº instrucciones</code>. Cuanto más bajo, mejor."},
+  {t:"Tema 1", q:"MIPS vs MFLOPS", a:"<b>MIPS</b> = millones de instrucciones por segundo. <b>MFLOPS</b> = millones de operaciones en coma flotante por segundo."},
+  {t:"Tema 1", q:"Clasificación de Flynn", a:"<b>SISD</b> (serie), <b>SIMD</b> (matriciales), <b>MISD</b> (vectoriales), <b>MIMD</b> (multicomputadores). Según los flujos de instrucciones y de datos."},
+  {t:"Tema 1", q:"Registros del monoprocesador", a:"<b>MBR</b> palabra a usar · <b>MAR</b> dirección de memoria/E·S · <b>RI</b> código de la instrucción · <b>IBR</b> instrucción a cargar · <b>PC</b> dirección de la siguiente instrucción."},
+  {t:"Tema 1", q:"Multiprocesador: memoria compartida vs distribuida", a:"<b>Compartida</b>: gran memoria común, usa cachés, interacción frecuente (UMA-SMP, NUMA). <b>Distribuida</b>: memoria local + mensajes, interacción poco frecuente (MIMD)."},
+  {t:"Tema 1", q:"Multiprocesadores vs multicomputadores", a:"<b>Multiprocesadores</b>: un solo SO, comunican por memoria o mensajes. <b>Multicomputadores</b>: cada uno con su SO, comunican por red (clúster)."},
+
+  {t:"Tema 2", q:"¿Qué es la segmentación?", a:"Subdividir la función F en etapas; el dato pasa de una a otra. Es <b>paralelismo temporal</b> (pipeline)."},
+  {t:"Tema 2", q:"Cauce síncrono vs asíncrono", a:"<b>Síncrono</b>: registros (flip-flops) entre etapas, controlados por reloj. <b>Asíncrono</b>: control por handshaking (la etapa lista avisa, la otra da acknowledge)."},
+  {t:"Tema 2", q:"Periodo de un cauce segmentado", a:"<code>P = T + ω</code><br>T = retardo de la etapa más lenta · ω = retardo del registro entre etapas."},
+  {t:"Tema 2", q:"Cauces estáticos vs dinámicos", a:"<b>Estáticos</b>: cambian de función con poca frecuencia, lineales, funciones fijas. <b>Dinámicos</b>: cambian mucho, reconfigurables."},
+  {t:"Tema 2", q:"Cauces unifunción vs multifunción", a:"<b>Unifunción</b>: una única función sobre los datos. <b>Multifunción</b>: varias funciones según una señal de control."},
+  {t:"Tema 2", q:"Tabla de reserva", a:"Patrón espacio-temporal que muestra qué etapas usa una función en cada instante. Sirve para planificar y evitar colisiones."},
+
+  {t:"Tema 3", q:"Tipos de dependencias entre instrucciones", a:"<b>Verdadera</b> (RAW), <b>antidependencia</b> (WAR) y <b>dependencia de salida</b> (WAW)."},
+  {t:"Tema 3", q:"RAW, WAR, WAW (qué significan)", a:"<b>RAW</b> = Read After Write → verdadera. <b>WAR</b> = Write After Read → antidependencia. <b>WAW</b> = Write After Write → de salida."},
+  {t:"Tema 3", q:"Técnicas para acelerar la resolución de conflictos", a:"<b>Forwarding</b>/cortocircuito (RAW), <b>buffering</b> (WAR) y <b>renombre de registros</b> (WAW)."},
+  {t:"Tema 3", q:"¿Qué es un interlock?", a:"Técnica hardware que detecta y resuelve un conflicto deteniendo o retrasando una instrucción hasta que termina la que lo provoca."},
+  {t:"Tema 3", q:"Salto retardado", a:"Retrasar el efecto del salto un ciclo para ejecutar una instrucción útil entremedias. Típico de RISC."},
+  {t:"Tema 3", q:"Predicción de saltos: estática vs dinámica", a:"<b>Estática</b>: se decide en compilación (predict-taken / not-taken). <b>Dinámica</b>: tabla de historia de saltos que predice según ejecuciones previas."},
+  {t:"Tema 3", q:"Características de RISC", a:"Conjunto reducido de instrucciones, formato fijo, control cableado, memoria solo por LOAD/STORE, muchos registros, segmentación y salto retardado."},
+
+  {t:"Tema 4", q:"Ecuación del rendimiento", a:"<code>T_cpu = CPI × I × T</code><br>Bajar cualquiera de los tres reduce T_cpu y sube el rendimiento."},
+  {t:"Tema 4", q:"Procesador superescalar", a:"De <b>m emisiones</b>: m pipelines que operan en paralelo. Limitado por dependencias y por el paralelismo (de instrucción y de máquina)."},
+  {t:"Tema 4", q:"ILP vs paralelismo de máquina", a:"<b>ILP</b>: instrucciones independientes que el programa permite ejecutar a la vez. <b>De máquina</b>: capacidad del procesador para aprovechar ese ILP."},
+  {t:"Tema 4", q:"Tipos de emisión / finalización", a:"En orden / en orden · en orden / fuera de orden · fuera de orden / fuera de orden."},
+
+  {t:"Tema 5", q:"SRAM vs DRAM", a:"<b>SRAM</b>: 4-6 transistores, rápida, cara, poco densa, sin refresco → caché. <b>DRAM</b>: 1 condensador + 1 transistor, lenta, barata, densa, necesita refresco → memoria principal."},
+  {t:"Tema 5", q:"Pared de la memoria (Ley de Moore)", a:"La lógica dobla velocidad cada ~3 años y la DRAM cada ~10. El procesador acaba teniendo que esperar a la memoria."},
+  {t:"Tema 5", q:"Principio de localidad", a:"<b>Temporal</b>: lo accedido se volverá a acceder pronto (bucle). <b>Espacial</b>: se accederá a posiciones cercanas (vector). Regla 90/10."},
+  {t:"Tema 5", q:"Tres organizaciones de caché", a:"Correspondencia <b>directa</b>, <b>completamente asociativa</b> y <b>asociativa por conjuntos de N vías</b>."},
+  {t:"Tema 5", q:"Correspondencia directa", a:"<code>línea = dirección mod nº_líneas</code>. Cada bloque va a una única línea. Campos: info, TAG y bit de validez."},
+  {t:"Tema 5", q:"Cuatro métricas de caché", a:"Tasa de acierto, tiempo de acierto, penalización por fallo y eficiencia."}
+];
+
+const PROBLEMS = [
+  {c:"Tipo 1 · CPI y MIPS + valorar mejora  ·  (Junio 2019)",
+   q:"Procesador a <code>2 GHz</code>. Benchmark de 10000 instrucciones:<br><code>L/S: 2 ciclos · 3200</code><br><code>ALU entera: 1 · 4500</code><br><code>FP: 5 · 1500</code><br><code>Saltos: 2 · 800</code><br><b>a)</b> CPI y MIPS. <b>b)</b> Si se doblan los registros, las L/S bajan a la mitad (1600) pero el ciclo sube un 10%: nuevo CPI y MIPS. <b>c)</b> ¿Mejora de verdad?",
+   s:`<div class="step"><b>a)</b> CPI = (2·3200 + 1·4500 + 5·1500 + 2·800) / 10000</div>
+      <div class="step">= (6400 + 4500 + 7500 + 1600) / 10000 = 20000/10000 = <b>2 ciclos/inst</b></div>
+      <div class="step">MIPS = f / (CPI·10⁶) = 2·10⁹ / (2·10⁶) = <b>1000 MIPS</b></div>
+      <div class="step" style="margin-top:9px"><b>b)</b> Nuevo total = 1600+4500+1500+800 = 8400 inst</div>
+      <div class="step">CPI = (2·1600 + 4500 + 5·1500 + 2·800)/8400 = 16800/8400 = <b>2</b> (no cambia)</div>
+      <div class="step">Ciclo +10% → T = 0,55 ns → f = 1/0,55ns ≈ 1,818 GHz</div>
+      <div class="step">MIPS = 1,818·10⁹/(2·10⁶) ≈ <b>909 MIPS</b></div>
+      <div class="step" style="margin-top:9px"><b>c)</b> Por MIPS parece que empeora (1000 → 909).</div>
+      <div class="step">Pero MIPS engaña cuando cambia el nº de instrucciones. Lo fiable es el <b>tiempo</b>:</div>
+      <div class="step">T = I·CPI·T_ciclo →&nbsp; viejo: 10000·2·0,5ns = 10000 ns</div>
+      <div class="step">nuevo: 8400·2·0,55ns = 9240 ns</div>
+      <div class="res">El tiempo baja (speedup ≈ 1,08): SÍ mejora ligeramente</div>
+      <div class="step" style="margin-top:8px;color:var(--muted)">Nota: la hoja oficial concluyó "no mejora" mirando solo MIPS. Si el profe espera esa vía, cítala; pero defiende el tiempo, que es la métrica correcta y demuestra que entiendes la trampa del MIPS.</div>`},
+
+  {c:"Tipo 2a · Amdahl inverso (despejar Fm)  ·  (Julio 2019)",
+   q:"Una mejora reduce los ciclos de las LD de <code>5 a 2</code> y se consigue un speedup global de <code>1,4</code>. ¿Cuál es la fracción de mejora Fm?",
+   s:`<div class="step">speedup de la parte mejorada: Sp = 5/2 = 2,5</div>
+      <div class="step">1,4 = 1 / ((1 − Fm) + Fm/2,5)</div>
+      <div class="step">1/1,4 = (1 − Fm) + 0,4·Fm → 0,714 = 1 − 0,6·Fm</div>
+      <div class="step">0,6·Fm = 1 − 0,714 = 0,286</div>
+      <div class="res">Fm = 0,476 ≈ 47,6 %</div>
+      <div class="step" style="margin-top:8px;color:var(--muted)">Ojo: la versión mecanografiada del examen pone 0,45, pero está mal. El despeje correcto (y el del margen a mano) da 47,6 %.</div>`},
+
+  {c:"Tipo 2b · Amdahl comparando diseños  ·  (Junio 2019)",
+   q:"App: <code>70%</code> instrucciones, <code>30%</code> E/S. De las no-E/S, el <code>20%</code> son FP.<br><b>A:</b> FP 6 ciclos, resto (no-E/S) 4 ciclos.<br><b>B:</b> ciclos de no-E/S +25%, pero doble frecuencia.<br><b>a)</b> speedup en las no-E/S. <b>b)</b> speedup global y mejor diseño.",
+   s:`<div class="step"><b>a)</b> CPI de las no-E/S en A = 0,2·6 + 0,8·4 = 1,2 + 3,2 = 4,4</div>
+      <div class="step">En B: ciclos +25% → 4,4·1,25 = 5,5, pero T_ciclo a la mitad</div>
+      <div class="step">tiempo/inst A = 4,4·Tc &nbsp;·&nbsp; B = 5,5·(Tc/2) = 2,75·Tc</div>
+      <div class="res">speedup no-E/S = 4,4 / 2,75 = 1,6</div>
+      <div class="step" style="margin-top:9px"><b>b)</b> Solo mejora el 70% (Fm = 0,7), la E/S no cambia:</div>
+      <div class="step">speedup global = 1 / ((1−0,7) + 0,7/1,6) = 1/(0,3 + 0,4375)</div>
+      <div class="res">= 1/0,7375 ≈ 1,36 → gana el diseño B</div>`},
+
+  {c:"Tipo 3 · Predicción de saltos (BHT + estática)  ·  (Julio/Junio 2019)",
+   q:"Bucle que recorre un vector con dos saltos: uno condicional <b>hacia adelante</b> (dentro del if) y el de cierre de bucle <b>hacia atrás</b>. ¿Cuántas veces acierta cada uno con predicción dinámica (BHT) y con estática tomado/no-tomado?",
+   s:`<div class="step"><b>Reglas a memorizar (esto es lo que se repite):</b></div>
+      <div class="step"><b>Dinámica (BHT):</b> predice lo mismo que la última vez que pasó por ese salto.</div>
+      <div class="step">· 1ª iteración → siempre falla (tabla vacía).</div>
+      <div class="step">· Salto de bucle (atrás): acierta todas menos la 1ª (vacía) y la última (salida).</div>
+      <div class="step">· Salto condicional interno: depende de los datos; si va alternando, falla casi siempre.</div>
+      <div class="step" style="margin-top:9px"><b>Estática tomado/no-tomado:</b></div>
+      <div class="step">· Salto hacia <b>adelante</b> → se predice NO tomado.</div>
+      <div class="step">· Salto hacia <b>atrás</b> (bucle) → se predice tomado → acierta todas menos la salida.</div>
+      <div class="res">El salto de bucle casi siempre se acierta; el condicional interno es el que falla</div>
+      <div class="step" style="margin-top:8px;color:var(--muted)">Además suelen pedir traducir el código a C y dar los registros finales. Identifica primero qué hace el bucle (suele ser buscar un máximo o sumar según una condición).</div>`},
+
+  {c:"Tipo 4 · Superescalar: cuándo se detiene cada política",
+   q:"Cauce superescalar (capta/decodifica 2 inst.), UF: LD/SD e INT 1 ciclo, FP suma 2, FP mult/div 3-4, 2 etapas WB. Hay que rellenar DEC1/DEC2 → UFs → WB. ¿Cuándo se detiene la emisión en cada política?",
+   s:`<div class="step"><b>Emisión en orden / fin en orden:</b> se detiene la emisión (y TODAS las siguientes) si hay conflicto de recursos, dependencia verdadera (RAW), o la instrucción anterior es multiciclo.</div>
+      <div class="step" style="margin-top:7px"><b>Emisión en orden / fin fuera de orden:</b> se detiene por conflicto de recursos, RAW <b>y</b> dependencia de salida (WAW).</div>
+      <div class="step" style="margin-top:7px"><b>Emisión fuera de orden / fin fuera de orden (con ventana):</b> solo se detiene por conflicto de recursos o RAW. La ventana deja adelantar instrucciones independientes.</div>
+      <div class="res">Truco: WB tiene 2 huecos/ciclo; si tres instrucciones quieren escribir a la vez, una espera</div>
+      <div class="step" style="margin-top:8px;color:var(--muted)">Suponiendo renombre de registros, WAR y WAW dejan de detener (solo importan recursos y RAW). El enunciado suele decir "suponemos que tenemos renombre".</div>`},
+
+  {c:"Tipo 5 · UF con fin fuera de orden + conflictos  ·  (Junio 2019)",
+   q:"UF: DIV, MUL, ADD, SUB. Valores iniciales <code>R2=2, R6=6</code>.<br><code>I1: DIV R3, R6, R2</code><br><code>I2: MUL R6, R6, R2</code><br><code>I3: ADD R4, R3, R2</code><br><code>I4: SUBI R3, R6, #2</code><br>Finalizan en orden I2, I4, I1, I3, SIN técnica de resolución. ¿Registros finales y qué falla?",
+   s:`<div class="step">Cada instrucción lee del banco al ejecutarse y escribe al finalizar:</div>
+      <div class="step">I2: R6 = 6·2 = <b>12</b></div>
+      <div class="step">I4: R3 = R6 − 2 = 12 − 2 = <b>10</b> &nbsp;(lee R6 ya cambiado)</div>
+      <div class="step">I1: R3 = R6 / R2 = 12 / 2 = <b>6</b> &nbsp;(¡debería haber leído R6=6 → 3!)</div>
+      <div class="step">I3: R4 = R3 + R2 = 6 + 2 = <b>8</b></div>
+      <div class="step">Resultado: R2=2, R3=6, R4=8, R6=12</div>
+      <div class="step" style="margin-top:9px"><b>Correcto en orden de programa:</b> R3=10, R4=5, R6=12</div>
+      <div class="step"><b>Errores:</b></div>
+      <div class="step">· I1 leyó R6 después de que I2 lo cambiara → <b>WAR</b> (antidependencia) sobre R6.</div>
+      <div class="step">· R3 acabó con el valor de I1 en vez del de I4 → <b>WAW</b> (dep. de salida) sobre R3.</div>
+      <div class="res">Se arreglan con renombre de registros (WAR y WAW)</div>`}
+];
+
+/* ---------- TABS ---------- */
+const tabs=[...document.querySelectorAll('.tab')];
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(x=>x.setAttribute('aria-selected', x===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===t.dataset.tab));
+}));
+
+/* ---------- FLASHCARDS ---------- */
+const temas=["Todos","Tema 1","Tema 2","Tema 3","Tema 4","Tema 5"];
+let filter="Todos", order=[], idx=0;
+const known=[]; // pila ordenada de índices marcados como sabidos
+
+const chipsEl=document.getElementById('chips');
+temas.forEach(name=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.textContent=name;
+  b.setAttribute('aria-pressed', name===filter);
+  b.addEventListener('click',()=>{filter=name; [...chipsEl.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent===name)); rebuild();});
+  chipsEl.appendChild(b);
+});
+
+const cardEl=document.getElementById('card');
+const fTag=document.getElementById('f-tag'), fQ=document.getElementById('f-q'), fA=document.getElementById('f-a');
+const posEl=document.getElementById('pos'), totalEl=document.getElementById('total'), remEl=document.getElementById('remaining');
+const deckArea=document.getElementById('deck-area'), doneEl=document.getElementById('done');
+const undoBtn=document.getElementById('undo');
+
+function pool(){
+  return FLASHCARDS.map((c,i)=>({...c,i}))
+    .filter(c=> filter==="Todos" || c.t===filter)
+    .filter(c=> !known.includes(c.i));
+}
+function rebuild(){
+  order=pool(); idx=0;
+  if(order.length===0){ deckArea.style.display='none'; doneEl.style.display='block'; }
+  else{ deckArea.style.display='block'; doneEl.style.display='none'; render(); }
+}
+function render(){
+  if(idx>=order.length) idx=0;
+  const c=order[idx];
+  cardEl.classList.remove('flipped');
+  fTag.textContent=c.t; fQ.innerHTML=c.q; fA.innerHTML=c.a;
+  posEl.textContent=idx+1; totalEl.textContent=order.length;
+  const total = filter==="Todos" ? FLASHCARDS.length : FLASHCARDS.filter(x=>x.t===filter).length;
+  remEl.textContent = known.length? `${total-order.length} sabidas` : '';
+  undoBtn.style.display = known.length? '' : 'none';
+}
+function flip(){ cardEl.classList.toggle('flipped'); }
+function next(){ idx=(idx+1)%order.length; render(); }
+function prev(){ idx=(idx-1+order.length)%order.length; render(); }
+function markKnown(){
+  known.push(order[idx].i);
+  rebuild();
+}
+function undoKnown(){
+  if(known.length===0) return;
+  const i=known.pop();          // devuelve la última carta marcada
+  rebuild();                    // el mazo deja de estar vacío y vuelve a mostrarse
+  const p=order.findIndex(c=>c.i===i);
+  if(p>=0){ idx=p; render(); }  // saltamos a la carta recuperada
+}
+function shuffle(){
+  for(let i=order.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[order[i],order[j]]=[order[j],order[i]];}
+  idx=0; render();
+}
+function resetDeck(){ known.length=0; rebuild(); }
+
+cardEl.addEventListener('click',flip);
+cardEl.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){e.preventDefault();flip();} });
+document.getElementById('next').addEventListener('click',next);
+document.getElementById('prev').addEventListener('click',prev);
+document.getElementById('know').addEventListener('click',markKnown);
+document.getElementById('undo').addEventListener('click',undoKnown);
+document.getElementById('undo2').addEventListener('click',undoKnown);
+document.getElementById('shuffle').addEventListener('click',shuffle);
+document.getElementById('reset').addEventListener('click',resetDeck);
+document.getElementById('reset2').addEventListener('click',resetDeck);
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('cards').classList.contains('active')){
+    if(e.key==='ArrowRight')next();
+    if(e.key==='ArrowLeft')prev();
+  }
+});
+rebuild();
+
+/* ---------- PROBLEMS ---------- */
+const list=document.getElementById('prob-list');
+PROBLEMS.forEach((p,i)=>{
+  const card=document.createElement('div'); card.className='prob';
+  card.innerHTML=`
+    <div class="prob-head">
+      <div class="prob-cat">${p.c}</div>
+      <div class="prob-q">${p.q}</div>
+      <button class="reveal" aria-expanded="false">Ver solución</button>
+    </div>
+    <div class="sol"><div class="sol-inner">${p.s}</div></div>`;
+  const btn=card.querySelector('.reveal'), sol=card.querySelector('.sol');
+  btn.addEventListener('click',()=>{
+    const open=sol.classList.toggle('open');
+    btn.setAttribute('aria-expanded',open);
+    btn.textContent=open?'Ocultar solución':'Ver solución';
+  });
+  list.appendChild(card);
+});
+</script>
+</body>
+</html>
