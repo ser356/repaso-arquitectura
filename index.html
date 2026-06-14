@@ -964,8 +964,16 @@ temas.forEach(name=>{
   t_chips.appendChild(b);
 });
 
+const TEST_SIZE = 20; // nº máximo de preguntas por test
+
 function tBuildOrder(){
-  tOrder = TEST.map((_,i)=>i).filter(i=> tFilter==="Todos" || TEST[i].t===tFilter);
+  // Pool filtrado por tema, mezclado y truncado a TEST_SIZE preguntas
+  const all = TEST.map((_,i)=>i).filter(i=> tFilter==="Todos" || TEST[i].t===tFilter);
+  for(let i=all.length-1;i>0;i--){
+    const j=(Math.random()*(i+1))|0;
+    [all[i],all[j]]=[all[j],all[i]];
+  }
+  tOrder = all.slice(0, TEST_SIZE);
 }
 
 function renderTest(){
@@ -1030,8 +1038,10 @@ function updateScore(){
   t_prog.style.width = total? `${(done/total)*100}%` : '0%';
   if(done===0){ t_grade.textContent='–/10'; }
   else{
-    const grade = (ok/done)*10;
-    t_grade.textContent = `${grade.toFixed(1).replace('.',',')}/10`;
+    // Cada 3 fallos restan 0,3333 (penalización continua: 0,1111 por fallo)
+    const penalty = (ko/3) * 0.3333;
+    const grade = Math.max(0, (ok/done)*10 - penalty);
+    t_grade.textContent = `${grade.toFixed(2).replace('.',',')}/10`;
   }
 }
 
@@ -1046,15 +1056,14 @@ t_listEl.addEventListener('click', e=>{
 });
 
 function tShuffle(){
-  for(let i=tOrder.length-1;i>0;i--){
-    const j=(Math.random()*(i+1))|0;
-    [tOrder[i],tOrder[j]]=[tOrder[j],tOrder[i]];
-  }
+  // Vuelve a sortear 20 preguntas aleatorias del pool filtrado
+  tBuildOrder();
   renderTest();
 }
 
 function tReset(){
   tAnswered.fill(null);
+  tBuildOrder();
   renderTest();
 }
 
