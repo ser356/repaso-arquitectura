@@ -128,6 +128,71 @@
   .sol-inner .step{margin:5px 0}
   .sol-inner .res{font-family:var(--mono);color:var(--green);margin-top:9px;font-weight:600}
 
+  /* test */
+  .scorebar{
+    position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:10px 0 12px;margin-bottom:12px;border-bottom:1px solid var(--line);
+  }
+  .scorebar .row{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--mono);font-size:12px;color:var(--muted);gap:10px;flex-wrap:wrap;
+  }
+  .scorebar b{color:var(--ink)}
+  .scorebar .ok{color:var(--green)}
+  .scorebar .ko{color:#e87a7a}
+  .scorebar .grade{color:var(--cyan);font-weight:600}
+  .prog{
+    height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:8px;
+  }
+  .prog>span{display:block;height:100%;background:var(--cyan);width:0%;transition:width .25s ease}
+  .test-actions{display:flex;gap:8px;margin:10px 0 16px}
+  .test-actions .btn{flex:1}
+
+  .qcard{
+    border:1px solid var(--line);border-radius:14px;background:var(--surface);
+    padding:16px 18px;margin-bottom:12px;
+  }
+  .qcat{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:7px}
+  .qtext{font-size:15px;margin-bottom:12px}
+  .qtext code{font-family:var(--mono);background:rgba(94,200,216,.12);color:var(--cyan);padding:1px 5px;border-radius:5px;font-size:.9em}
+  .opts{display:flex;flex-direction:column;gap:7px}
+  .opt{
+    appearance:none;cursor:pointer;text-align:left;width:100%;
+    font-family:var(--sans);font-size:14px;color:var(--ink);
+    background:var(--surface-2);border:1px solid var(--line);
+    padding:10px 14px 10px 38px;border-radius:10px;position:relative;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .opt::before{
+    content:attr(data-letter);position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:600;
+  }
+  .opt:hover:not(:disabled){border-color:rgba(255,255,255,.22)}
+  .opt:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .opt:disabled{cursor:default}
+  .opt code{font-family:var(--mono);background:rgba(232,183,90,.12);color:var(--amber);padding:1px 5px;border-radius:5px;font-size:.9em}
+  .opt.correct{
+    background:rgba(123,216,143,.12);border-color:rgba(123,216,143,.55);color:var(--green);
+  }
+  .opt.correct::after{
+    content:"✓";position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    font-weight:700;color:var(--green);
+  }
+  .opt.wrong{
+    background:rgba(232,122,122,.10);border-color:rgba(232,122,122,.5);color:#e87a7a;
+  }
+  .opt.wrong::after{
+    content:"✗";position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    font-weight:700;color:#e87a7a;
+  }
+  .expl{
+    display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);
+    font-size:14px;color:#dde2ec;
+  }
+  .expl code{font-family:var(--mono);background:rgba(232,183,90,.12);color:var(--amber);padding:1px 5px;border-radius:5px;font-size:.9em}
+  .qcard.answered .expl{display:block;animation:fade .2s ease}
+  .test-done{text-align:center;color:var(--muted);font-size:14px;padding:30px 0}
+
   @media (prefers-reduced-motion:reduce){
     .card{transition:none}*{animation:none!important}
   }
@@ -144,6 +209,7 @@
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-tab="cards">Flashcards</button>
     <button class="tab" role="tab" aria-selected="false" data-tab="probs">Problemas</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="test">Test</button>
   </div>
 
   <!-- FLASHCARDS -->
@@ -191,6 +257,24 @@
   <!-- PROBLEMS -->
   <section class="panel" id="probs" role="tabpanel">
     <div id="prob-list"></div>
+  </section>
+
+  <!-- TEST -->
+  <section class="panel" id="test" role="tabpanel">
+    <div class="chips" id="test-chips"></div>
+    <div class="scorebar">
+      <div class="row">
+        <span>Contestadas <b id="t-done">0</b>/<span id="t-total">0</span></span>
+        <span><span class="ok">Aciertos <b id="t-ok">0</b></span> · <span class="ko">Fallos <b id="t-ko">0</b></span></span>
+        <span class="grade">Nota <b id="t-grade">–/10</b></span>
+      </div>
+      <div class="prog"><span id="t-prog"></span></div>
+    </div>
+    <div class="test-actions">
+      <button class="btn ghost" id="t-shuffle">Barajar</button>
+      <button class="btn ghost" id="t-reset">Reiniciar test</button>
+    </div>
+    <div id="test-list"></div>
   </section>
 </div>
 
@@ -413,6 +497,572 @@ PROBLEMS.forEach((p,i)=>{
   });
   list.appendChild(card);
 });
+
+/* ---------- TEST ---------- */
+const TEST = [
+  /* ===== Tema 1 ===== */
+  {t:"Tema 1", q:"¿Qué es el procesamiento paralelo?",
+   o:["Forma de procesamiento que favorece los procesos concurrentes",
+      "Sinónimo de multiprogramación a nivel de SO",
+      "Una técnica exclusiva de los computadores RISC",
+      "Sólo es aplicable a los procesadores matriciales"],
+   c:0, e:"Es la forma de procesamiento que <b>favorece la concurrencia</b> (sucesos paralelos, simultáneos o solapados)."},
+
+  {t:"Tema 1", q:"¿Cuáles son los tres tipos de sucesos que implica la concurrencia?",
+   o:["Síncronos, asíncronos y temporales",
+      "Paralelos, simultáneos y solapados",
+      "Lineales, ramificados y solapados",
+      "Funcionales, espaciales y temporales"],
+   c:1, e:"Concurrencia ⇒ sucesos <b>paralelos</b> (distintos recursos a la vez), <b>simultáneos</b> (mismo instante) y <b>solapados</b> (intervalos superpuestos)."},
+
+  {t:"Tema 1", q:"¿Cuáles son las tres formas de introducir paralelismo?",
+   o:["Funcional, temporal y espacial",
+      "Síncrono, asíncrono y solapado",
+      "Hardware, software y firmware",
+      "SISD, SIMD y MIMD"],
+   c:0, e:"<b>Funcional</b> (distintas unidades a la vez), <b>temporal</b>/segmentación (suboperaciones solapadas) y <b>espacial</b>/replicación (varios procesadores con datos distintos)."},
+
+  {t:"Tema 1", q:"El paralelismo <b>temporal</b> consiste en…",
+   o:["Replicar la misma estructura HW para datos diferentes",
+      "Usar varias unidades funcionales en un único procesador",
+      "Descomponer la operación en suboperaciones que se solapan en distintas etapas",
+      "Multiplexar el reloj entre varios procesadores"],
+   c:2, e:"Es la <b>segmentación</b> (pipeline): la función se subdivide y los datos pasan de etapa en etapa."},
+
+  {t:"Tema 1", q:"Diferencia entre latencia y productividad",
+   o:["Latencia = trabajo por unidad de tiempo · Productividad = tiempo en terminar una tarea",
+      "Latencia = tiempo en terminar una tarea · Productividad = trabajo realizado en un tiempo dado",
+      "Son sinónimos cuando hay segmentación",
+      "Latencia es del HW y productividad sólo del SO"],
+   c:1, e:"<b>Latencia</b> = tiempo de finalización. <b>Productividad</b> = cantidad de trabajo realizado en un tiempo dado."},
+
+  {t:"Tema 1", q:"¿Qué afirma la <b>ley de Amdahl</b>?",
+   o:["La mejora global es siempre proporcional a la frecuencia del procesador",
+      "El speedup tiende a infinito si Sp tiende a infinito",
+      "La mejora global está limitada por la fracción de tiempo que <b>sí</b> usa el modo más rápido",
+      "Doblar el número de procesadores siempre dobla el rendimiento"],
+   c:2, e:"Aunque aceleres infinito la parte mejorada, la parte no mejorada (1−Fm) pone el techo."},
+
+  {t:"Tema 1", q:"Fórmula correcta del speedup global de Amdahl",
+   o:["<code>S = Fm · Sp</code>",
+      "<code>S = 1 / ((1 − Fm) + Fm/Sp)</code>",
+      "<code>S = (1 − Fm)/Fm + Sp</code>",
+      "<code>S = Sp / (1 − Fm)</code>"],
+   c:1, e:"<code>S = 1 / ((1−Fm) + Fm/Sp)</code> con Fm = fracción de tiempo mejorada y Sp = aceleración de esa parte."},
+
+  {t:"Tema 1", q:"Con <code>Fm = 0,5</code> y <code>Sp = 2</code>, ¿cuál es el speedup global?",
+   o:["1,20", "1,33", "1,50", "2,00"],
+   c:1, e:"<code>S = 1 / (0,5 + 0,5/2) = 1/0,75 ≈ <b>1,33</b></code>."},
+
+  {t:"Tema 1", q:"Si <code>Fm = 0,8</code> y <code>Sp → ∞</code>, el speedup global tiende a…",
+   o:["∞", "10", "5", "1,8"],
+   c:2, e:"Límite Amdahl: <code>1/(1−Fm) = 1/0,2 = <b>5</b></code>. Es el techo aunque la mejora sea infinita."},
+
+  {t:"Tema 1", q:"Definición de CPI",
+   o:["Ciclos por instrucción = nº ciclos / nº instrucciones",
+      "Coste por instrucción en €",
+      "Cantidad de paralelismo de un programa",
+      "Ciclos del procesador en un segundo"],
+   c:0, e:"<code>CPI = Nº_ciclos / Nº_instrucciones</code>. Cuanto más bajo, mejor."},
+
+  {t:"Tema 1", q:"Definición de MIPS",
+   o:["Mega-bits por segundo de la memoria",
+      "Millones de operaciones en coma flotante por segundo",
+      "Millones de instrucciones por segundo",
+      "Mega-instrucciones por unidad de paralelismo"],
+   c:2, e:"<b>MIPS</b> = millones de instrucciones por segundo. <code>MIPS = f / (CPI · 10⁶)</code>."},
+
+  {t:"Tema 1", q:"¿Y MFLOPS?",
+   o:["Millones de instrucciones de flujo por segundo",
+      "Millones de operaciones en coma flotante por segundo",
+      "Mega-frecuencias lógicas por segundo",
+      "Megabytes por segundo en disco"],
+   c:1, e:"<b>MFLOPS</b> = millones de operaciones en <b>coma flotante</b> por segundo."},
+
+  {t:"Tema 1", q:"Procesador a <code>2 GHz</code> con <code>CPI = 2</code>. ¿MIPS?",
+   o:["500", "1000", "2000", "4000"],
+   c:1, e:"<code>MIPS = f/(CPI·10⁶) = 2·10⁹/(2·10⁶) = <b>1000</b></code>."},
+
+  {t:"Tema 1", q:"Con <code>I = 1000</code>, <code>CPI = 2</code> y <code>T = 5 ns</code>: ¿cuánto vale <code>T_cpu</code>?",
+   o:["1 µs", "5 µs", "10 µs", "20 µs"],
+   c:2, e:"<code>T_cpu = CPI · I · T = 2·1000·5ns = 10000 ns = <b>10 µs</b></code>."},
+
+  {t:"Tema 1", q:"Clasificación de Flynn",
+   o:["RISC, CISC, VLIW, EPIC",
+      "SISD, SIMD, MISD, MIMD",
+      "UMA, NUMA, COMA, CC-NUMA",
+      "Sistólico, frente de onda, vectorial, escalar"],
+   c:1, e:"Flynn clasifica según los flujos de <b>instrucciones</b> y de <b>datos</b>: SISD, SIMD, MISD, MIMD."},
+
+  {t:"Tema 1", q:"Un procesador matricial corresponde a la categoría…",
+   o:["SISD (computadores serie)",
+      "SIMD (procesadores matriciales)",
+      "MISD (computadores vectoriales)",
+      "MIMD (multicomputadores)"],
+   c:1, e:"Procesador matricial = <b>SIMD</b>: una sola instrucción operando sobre múltiples datos en paralelo."},
+
+  {t:"Tema 1", q:"¿Para qué sirve el <b>PC</b> (Program Counter)?",
+   o:["Almacenar la palabra que se está usando",
+      "Guardar el código de la instrucción en ejecución",
+      "Contener la dirección de la <b>siguiente</b> instrucción a cargar en memoria",
+      "Almacenar la dirección efectiva de los operandos"],
+   c:2, e:"El <b>PC</b> es el <b>contador de programa</b>: guarda la dirección de la siguiente instrucción."},
+
+  {t:"Tema 1", q:"¿Y el <b>RI</b> (Registro de Instrucciones)?",
+   o:["Contiene la dirección de memoria a leer",
+      "Almacena el <b>código de la instrucción</b> que se está ejecutando",
+      "Es el acumulador de la ALU",
+      "Apunta a la siguiente instrucción a cargar"],
+   c:1, e:"<b>RI</b> guarda el <b>código de la instrucción</b> que se está ejecutando."},
+
+  {t:"Tema 1", q:"¿Qué registro contiene la <b>dirección</b> de memoria o E/S a la que se accede?",
+   o:["MBR", "PC", "MAR", "IBR"],
+   c:2, e:"<b>MAR</b> = registro de dirección de memoria/E/S. <b>MBR</b> contiene la palabra; <b>IBR</b> la siguiente instrucción."},
+
+  {t:"Tema 1", q:"Diferencia clave entre multiprocesador y multicomputador",
+   o:["Un multiprocesador tiene un único SO; un multicomputador suele tener un SO por nodo",
+      "Sólo se diferencian en el lenguaje de programación",
+      "Un multiprocesador comunica por red y un multicomputador por memoria",
+      "Un multiprocesador es siempre SIMD y un multicomputador siempre MIMD"],
+   c:0, e:"En un <b>multiprocesador</b> hay un solo SO controlando todo; en un <b>multicomputador</b> cada nodo tiene su SO y se comunican por <b>red</b> (clúster)."},
+
+  {t:"Tema 1", q:"Multiprocesadores de memoria <b>compartida</b> vs <b>distribuida</b>",
+   o:["Compartida ⇒ comunicación por mensajes; distribuida ⇒ por memoria común",
+      "Compartida ⇒ memoria común con cachés (UMA/NUMA); distribuida ⇒ memoria local + paso de mensajes",
+      "Las dos están limitadas a procesadores SIMD",
+      "Sólo cambia la velocidad del bus"],
+   c:1, e:"<b>Compartida</b>: gran memoria común y cachés (UMA-SMP, NUMA), interacción frecuente. <b>Distribuida</b>: memoria local en cada nodo + mensajes, interacción poco frecuente."},
+
+  {t:"Tema 1", q:"¿Qué planteamiento es de <b>hardware</b> para introducir paralelismo?",
+   o:["Tiempo compartido",
+      "Multiprogramación",
+      "Solapamiento entre operaciones de CPU y E/S",
+      "Bloqueo cooperativo de procesos"],
+   c:2, e:"Planteamientos HW: multiplicidad de UF, segmentación dentro de la CPU, <b>solapamiento CPU/E/S</b>, jerarquía de memoria y AB equilibrado. La multiprogramación y el tiempo compartido son <b>SW</b>."},
+
+  {t:"Tema 1", q:"La <b>multiprogramación</b> persigue…",
+   o:["Reducir el tiempo de espera de la CPU intercalando varios programas",
+      "Repartir la CPU dando intervalos iguales a cada programa",
+      "Ejecutar la misma instrucción sobre varios datos",
+      "Sustituir a la memoria caché"],
+   c:0, e:"Reduce el tiempo de espera de la CPU intercalando ejecución de programas y solapando CPU con E/S."},
+
+  {t:"Tema 1", q:"El <b>tiempo compartido</b> es…",
+   o:["Una técnica HW para sumar números más rápido",
+      "Una extensión de la multiprogramación que da igual oportunidad a programas que pelean por la CPU",
+      "Una forma de paralelismo SIMD",
+      "Sinónimo de DMA"],
+   c:1, e:"Es una <b>extensión de la multiprogramación</b>: intervalos de tiempo a cada programa, mayor tiempo de espera por la CPU."},
+
+  /* ===== Tema 2 ===== */
+  {t:"Tema 2", q:"La segmentación es un tipo de paralelismo…",
+   o:["Espacial", "Temporal", "Funcional", "Simétrico"],
+   c:1, e:"Segmentación = <b>paralelismo temporal</b>: subdivide la función F en etapas, el dato pasa de unas a otras."},
+
+  {t:"Tema 2", q:"En un cauce <b>síncrono</b> el flujo se controla mediante…",
+   o:["Handshaking entre etapas",
+      "Registros (flip-flops) entre etapas y un reloj común",
+      "Una FIFO global única",
+      "Solo el sistema operativo"],
+   c:1, e:"<b>Síncrono</b>: registros entre etapas y reloj común. <b>Asíncrono</b>: handshaking (lista/acknowledge)."},
+
+  {t:"Tema 2", q:"¿Cuál es el <b>periodo</b> de un cauce segmentado?",
+   o:["<code>P = T − ω</code>",
+      "<code>P = T · ω</code>",
+      "<code>P = T + ω</code>",
+      "<code>P = T / ω</code>"],
+   c:2, e:"<code>P = T + ω</code> con <b>T</b> retardo de la etapa más lenta y <b>ω</b> retardo del registro entre etapas."},
+
+  {t:"Tema 2", q:"Cauce con etapas de 60, 50, 90 y 80 ns y registros de 50 ns. ¿Cuál es <code>P</code>?",
+   o:["140 ns", "130 ns", "90 ns", "190 ns"],
+   c:0, e:"T = etapa más lenta = 90 ns; ω = 50 ns ⇒ <code>P = 90 + 50 = <b>140 ns</b></code>."},
+
+  {t:"Tema 2", q:"Cauces <b>estáticos</b> vs <b>dinámicos</b> (según frecuencia de cambio de función)",
+   o:["Estáticos cambian mucho; dinámicos son fijos",
+      "Estáticos cambian poco (lineales, funciones fijas); dinámicos cambian mucho (reconfigurables)",
+      "Sólo se diferencian en el voltaje",
+      "Los dinámicos no admiten varias funciones"],
+   c:1, e:"<b>Estáticos</b>: poca frecuencia de cambio, cauces lineales, funciones fijas. <b>Dinámicos</b>: alta frecuencia, reconfigurables."},
+
+  {t:"Tema 2", q:"¿Qué es un cauce <b>multifunción</b>?",
+   o:["Tiene varias unidades funcionales en paralelo",
+      "Ejecuta diversas funciones en función de una señal de control",
+      "Realiza una única función pero a doble velocidad",
+      "Sólo cabe en RISC"],
+   c:1, e:"<b>Multifunción</b>: ejecuta varias funciones según una señal de control. <b>Unifunción</b>: única función sobre los datos."},
+
+  {t:"Tema 2", q:"La <b>tabla de reserva</b> sirve para…",
+   o:["Indicar el patrón espacio-temporal de etapas que ocupa cada función y planificar para evitar colisiones",
+      "Asignar registros del banco de la CPU",
+      "Etiquetar las líneas de la caché",
+      "Predecir saltos condicionales"],
+   c:0, e:"Diagrama espacio-temporal del orden de etapas. Sirve para planificar y evitar <b>colisiones</b> y dependencias en el cauce."},
+
+  {t:"Tema 2", q:"De las siguientes, ¿qué <b>NO</b> es una dificultad típica de la segmentación?",
+   o:["Dividir la función en etapas equilibradas",
+      "Planificar los sucesivos eventos para evitar colisiones",
+      "Aumentar la eficiencia del pipeline",
+      "Eliminar por completo el reloj del sistema"],
+   c:3, e:"Dividir, planificar y maximizar la eficiencia son dificultades reales. Eliminar el reloj no lo es; al contrario, los cauces <b>síncronos</b> dependen de él."},
+
+  /* ===== Tema 3 ===== */
+  {t:"Tema 3", q:"Los <b>tres</b> tipos de dependencias entre instrucciones son…",
+   o:["Verdadera, antidependencia y de salida",
+      "RAW, RAR y WAW",
+      "Síncrona, asíncrona y solapada",
+      "Estática, dinámica y mixta"],
+   c:0, e:"<b>Verdadera</b> (RAW), <b>antidependencia</b> (WAR) y <b>de salida</b> (WAW)."},
+
+  {t:"Tema 3", q:"<b>RAW</b> significa…",
+   o:["Read After Reset",
+      "Read After Write (dependencia verdadera)",
+      "Read And Wait",
+      "Register Always Written"],
+   c:1, e:"<b>RAW</b> = Read After Write ⇒ <b>dependencia verdadera</b>: no puedes leer hasta que escriban."},
+
+  {t:"Tema 3", q:"<b>WAR</b> es la abreviatura de…",
+   o:["Write After Read (antidependencia)",
+      "Write And Reset",
+      "Wait After Read",
+      "Write Around Register"],
+   c:0, e:"<b>WAR</b> = Write After Read ⇒ <b>antidependencia</b>."},
+
+  {t:"Tema 3", q:"<b>WAW</b> corresponde a…",
+   o:["Wait After Write",
+      "Write After Wait",
+      "Write After Write (dependencia de salida)",
+      "Word Alignment Word"],
+   c:2, e:"<b>WAW</b> = Write After Write ⇒ <b>dependencia de salida</b>."},
+
+  {t:"Tema 3", q:"¿Qué técnica acelera la resolución de un conflicto <b>RAW</b>?",
+   o:["Buffering",
+      "Renombre de registros",
+      "Forwarding (cortocircuito)",
+      "Salto retardado"],
+   c:2, e:"<b>Forwarding</b>/cortocircuito reenvía el resultado de la etapa que acaba de producirlo, sin esperar a la escritura en el banco."},
+
+  {t:"Tema 3", q:"El <b>buffering</b> ayuda con conflictos de tipo…",
+   o:["RAW", "WAR", "WAW", "Recursos"],
+   c:1, e:"Las <b>antidependencias</b> (WAR) se resuelven con <b>buffering</b> (guardando el valor leído antes de que sea sobreescrito)."},
+
+  {t:"Tema 3", q:"El <b>renombre de registros</b> elimina los conflictos…",
+   o:["WAW (y también WAR)",
+      "Sólo RAW",
+      "Sólo de control",
+      "Sólo de recursos"],
+   c:0, e:"Renombrando registros desaparecen las dependencias <b>de salida (WAW)</b> y las <b>antidependencias (WAR)</b>; sólo persisten las RAW."},
+
+  {t:"Tema 3", q:"¿Qué es un <b>interlock</b>?",
+   o:["Un cierre del cauce por el SO",
+      "Una técnica HW que detecta y resuelve un conflicto deteniendo o retrasando la instrucción afectada",
+      "Una memoria caché bloqueante",
+      "Un protocolo de coherencia entre caches"],
+   c:1, e:"<b>Interlock</b>: técnica hardware de detección y resolución que detiene/retarda hasta que termina la instrucción que provoca el conflicto."},
+
+  {t:"Tema 3", q:"El <b>salto retardado</b> consiste en…",
+   o:["Predecir si el salto se va a tomar o no",
+      "Retrasar el efecto del salto un ciclo para ejecutar una instrucción útil entremedias",
+      "Bloquear el cauce durante el salto",
+      "Ejecutar el salto al final de la fase WB"],
+   c:1, e:"El <b>delay slot</b>: se retrasa el efecto del salto un ciclo y se aprovecha para ejecutar una instrucción útil. Típico de RISC."},
+
+  {t:"Tema 3", q:"En la <b>predicción estática</b> de saltos, ¿quién decide la predicción?",
+   o:["El compilador (en tiempo de compilación)",
+      "La CPU mediante una tabla de historia",
+      "El sistema operativo en cada llamada",
+      "Una caché compartida con la memoria"],
+   c:0, e:"<b>Estática</b> = se decide en compilación (predict-taken / predict-not-taken). <b>Dinámica</b> = en ejecución, vía tabla de historia."},
+
+  {t:"Tema 3", q:"En la <b>predicción dinámica</b> con <b>tabla de historia de saltos (BHT)</b>, el sistema…",
+   o:["Predice siempre tomado",
+      "Predice según las ejecuciones previas almacenadas en la tabla",
+      "Predice según el opcode de la instrucción",
+      "No predice: detiene el cauce"],
+   c:1, e:"La <b>BHT</b> (cache de saltos) almacena historia y predice como la última vez que pasó por ese salto."},
+
+  {t:"Tema 3", q:"En predicción <b>estática</b> tomado/no-tomado, lo habitual es…",
+   o:["Saltos hacia adelante = tomado · saltos hacia atrás = no tomado",
+      "Saltos hacia adelante = no tomado · saltos hacia atrás (bucles) = tomado",
+      "Todos los saltos se predicen tomados",
+      "Todos los saltos se predicen no tomados"],
+   c:1, e:"Heurística clásica: <b>adelante</b> ⇒ no tomado; <b>atrás</b> (cierres de bucle) ⇒ tomado."},
+
+  {t:"Tema 3", q:"¿Cuál de estas <b>NO</b> es una característica típica de RISC?",
+   o:["Conjunto reducido de instrucciones y formato fijo",
+      "Acceso a memoria sólo por LOAD/STORE",
+      "Control microprogramado y muchas instrucciones complejas",
+      "Salto retardado y segmentación"],
+   c:2, e:"RISC usa <b>control cableado</b> (no microprogramado), instrucciones simples, formato fijo, LOAD/STORE, muchos registros, salto retardado y segmentación."},
+
+  /* ===== Tema 4 ===== */
+  {t:"Tema 4", q:"La ecuación del rendimiento es…",
+   o:["<code>T_cpu = CPI + I + T</code>",
+      "<code>T_cpu = CPI · I · T</code>",
+      "<code>T_cpu = CPI / (I · T)</code>",
+      "<code>T_cpu = (I + T)/CPI</code>"],
+   c:1, e:"<code>T_cpu = CPI · I · T</code>. Bajar cualquiera de los tres reduce el tiempo y mejora el rendimiento."},
+
+  {t:"Tema 4", q:"Un procesador <b>superescalar de m emisiones</b>…",
+   o:["Tiene un único pipeline pero con etapas más cortas",
+      "Forma m pipelines que operan de forma concurrente",
+      "Es siempre SIMD",
+      "Sustituye al sistema operativo"],
+   c:1, e:"De <b>m emisiones</b> = m pipelines en paralelo. Limitado por dependencias y por el ILP/máquina."},
+
+  {t:"Tema 4", q:"Diferencia entre <b>ILP</b> y paralelismo de <b>máquina</b>",
+   o:["ILP es del HW; el de máquina es del programa",
+      "ILP = instrucciones independientes que el programa permite ejecutar a la vez; el de máquina = capacidad del HW para aprovecharlo",
+      "Son sinónimos",
+      "ILP es exclusivo de RISC"],
+   c:1, e:"<b>ILP</b> (programa): instrucciones independientes ejecutables a la vez. <b>De máquina</b> (HW): capacidad del procesador para aprovechar ese ILP."},
+
+  {t:"Tema 4", q:"Los tres tipos de dependencias que limitan a un superescalar son…",
+   o:["De datos, de control y de recursos",
+      "RAW, WAR y WAW (sólo de datos)",
+      "Lógicas, físicas y temporales",
+      "De memoria, de caché y de bus"],
+   c:0, e:"Limitaciones del superescalar: <b>datos</b> (RAW/WAR/WAW), <b>control</b> (saltos) y <b>recursos</b> (UF, puertos de WB)."},
+
+  {t:"Tema 4", q:"Las políticas posibles de emisión/finalización son…",
+   o:["En orden / en orden, en orden / fuera de orden, fuera de orden / fuera de orden",
+      "En orden / en orden, fuera de orden / en orden, fuera de orden / fuera de orden",
+      "En orden / fuera de orden, fuera de orden / en orden",
+      "Sólo en orden o sólo fuera de orden"],
+   c:0, e:"Las tres políticas estudiadas: <b>en orden / en orden</b>, <b>en orden / fuera de orden</b> y <b>fuera de orden / fuera de orden</b>."},
+
+  {t:"Tema 4", q:"Si un superescalar utiliza <b>renombre de registros</b>, las paradas <b>siguen</b> debiéndose principalmente a…",
+   o:["WAR y WAW",
+      "Conflicto de recursos y RAW",
+      "Salto retardado",
+      "Multiprogramación del SO"],
+   c:1, e:"Con renombre, WAR y WAW dejan de detener; sólo paran <b>recursos</b> y <b>RAW</b>."},
+
+  {t:"Tema 4", q:"En un superescalar con emisión <b>en orden / finalización en orden</b>, ¿cuándo se detiene la emisión?",
+   o:["Sólo si hay fallo de caché",
+      "Por conflicto de recursos, RAW o porque la instrucción anterior es multiciclo",
+      "Sólo por WAW",
+      "Nunca, siempre emite"],
+   c:1, e:"En orden/en orden: cualquier conflicto (recursos, RAW o multiciclo previo) detiene la emisión y todas las siguientes."},
+
+  {t:"Tema 4", q:"En emisión <b>fuera de orden / finalización fuera de orden</b> con <b>ventana de instrucciones</b>, ¿cuándo se detiene la emisión?",
+   o:["Sólo si hay conflicto de recursos o RAW (la ventana adelanta independientes)",
+      "Cada vez que una instrucción es multiciclo",
+      "Sólo si hay WAW",
+      "Sólo si hay un salto"],
+   c:0, e:"La <b>ventana</b> permite adelantar instrucciones independientes; sólo paran <b>recursos</b> y <b>RAW</b>."},
+
+  /* ===== Tema 5 ===== */
+  {t:"Tema 5", q:"Diferencia esencial entre SRAM y DRAM",
+   o:["SRAM usa condensadores y necesita refresco; DRAM no",
+      "SRAM: 4-6 transistores, rápida, sin refresco · DRAM: 1 transistor + 1 condensador, más lenta, con refresco",
+      "Las dos son iguales pero SRAM es más barata",
+      "DRAM se usa en caché y SRAM en memoria principal"],
+   c:1, e:"<b>SRAM</b>: 4-6 MOSFET por bit, rápida, cara, poco densa, sin refresco → caché. <b>DRAM</b>: 1 condensador + 1 transistor, lenta, barata, densa, con refresco → memoria principal."},
+
+  {t:"Tema 5", q:"¿Qué es la <b>pared de la memoria</b> (Ley de Moore)?",
+   o:["Una protección física entre módulos DRAM",
+      "Que la lógica dobla velocidad cada ~3 años y la DRAM cada ~10, por lo que el procesador se detiene esperando a la memoria",
+      "Una limitación del ancho de banda del bus PCI",
+      "El precio de la memoria es proporcional al voltaje"],
+   c:1, e:"Lógica × 2 cada ~3 años; DRAM × 2 cada ~10. La CPU acaba teniendo que esperar a la memoria."},
+
+  {t:"Tema 5", q:"Localidad <b>temporal</b> vs <b>espacial</b>",
+   o:["Temporal = posiciones cercanas; espacial = el mismo dato pronto",
+      "Temporal = el mismo dato se vuelve a acceder pronto (bucle); espacial = se accederá a posiciones cercanas (vector)",
+      "Temporal = depende del SO; espacial = del HW",
+      "Sólo se aplican a la memoria principal, no a la caché"],
+   c:1, e:"<b>Temporal</b>: lo accedido se volverá a acceder pronto (bucle). <b>Espacial</b>: posiciones cercanas (vector)."},
+
+  {t:"Tema 5", q:"¿Qué dice la <b>regla 90/10</b>?",
+   o:["El 90% del tiempo se ejecuta sólo el 10% del código",
+      "El 90% del código se ejecuta el 10% del tiempo",
+      "El 90% de los accesos van a la RAM",
+      "El 90% del rendimiento es del SO"],
+   c:0, e:"El <b>90%</b> del tiempo se gasta en sólo el <b>10%</b> del código (justifica la jerarquía + caché)."},
+
+  {t:"Tema 5", q:"Las <b>tres</b> organizaciones de caché son…",
+   o:["Directa, completamente asociativa y asociativa por conjuntos de N vías",
+      "Directa, indirecta y mixta",
+      "L1, L2 y L3",
+      "SRAM, DRAM y SDRAM"],
+   c:0, e:"<b>Directa</b>, <b>completamente asociativa</b> y <b>asociativa por conjuntos de N vías</b>."},
+
+  {t:"Tema 5", q:"En correspondencia <b>directa</b>, ¿cómo se obtiene la línea de caché?",
+   o:["<code>línea = dirección · nº_líneas</code>",
+      "<code>línea = dirección + TAG</code>",
+      "<code>línea = dirección mod nº_líneas</code>",
+      "<code>línea = nº_líneas mod dirección</code>"],
+   c:2, e:"<code>línea = dirección_memoria mod nº_líneas_caché</code>. Cada bloque va a una <b>única</b> línea."},
+
+  {t:"Tema 5", q:"Caché directa de 8 líneas. ¿En qué línea cae la dirección <code>9</code>?",
+   o:["0", "1", "8", "9"],
+   c:1, e:"<code>9 mod 8 = <b>1</b></code>. (También <code>1 mod 8 = 1</code>: ambos compiten por la misma línea)."},
+
+  {t:"Tema 5", q:"Campos de cada línea en una caché de correspondencia directa",
+   o:["INFO, TAG y bit de validez",
+      "Sólo INFO",
+      "TAG y dirección física",
+      "INFO, dirección virtual y permisos"],
+   c:0, e:"Cada entrada lleva la <b>INFO</b> (datos), un <b>TAG</b> y un <b>bit de validez</b>."},
+
+  {t:"Tema 5", q:"¿Para qué sirve el <b>bit de validez</b>?",
+   o:["Indicar si la línea está sincronizada con disco",
+      "Indicar si la entrada de la caché contiene información válida",
+      "Marcar la última línea accedida (LRU)",
+      "Codificar la paridad del TAG"],
+   c:1, e:"Marca si la entrada tiene información <b>válida</b> (típicamente 0 al arrancar / al invalidar)."},
+
+  {t:"Tema 5", q:"Una caché <b>multipalabra</b> (bloque con varias palabras) explota sobre todo…",
+   o:["La localidad temporal",
+      "La localidad espacial (subiendo la tasa de aciertos)",
+      "La pared de la memoria",
+      "La ley de Amdahl"],
+   c:1, e:"Al traer un bloque entero, los accesos a posiciones <b>cercanas</b> aciertan: explota la <b>localidad espacial</b> y necesita un multiplexor para elegir palabra."},
+
+  {t:"Tema 5", q:"En una caché <b>completamente asociativa</b>…",
+   o:["Cada bloque tiene una única línea de destino",
+      "La información se coloca en cualquier hueco libre y la dirección se compara con todos los TAG (memoria direccionable por contenido)",
+      "Se reduce la tasa de aciertos respecto a la directa",
+      "No necesita TAG"],
+   c:1, e:"<b>Asociativa</b>: la información se coloca en huecos libres (sin restricción) y se compara la dirección con <b>todos</b> los TAG → memoria direccionable por contenido."},
+
+  {t:"Tema 5", q:"Una caché <b>asociativa por conjuntos de N vías</b>…",
+   o:["Es siempre más lenta que la directa por construcción",
+      "Combina ambas: el conjunto se calcula como en directa, y dentro del conjunto se buscan las N vías como en asociativa",
+      "Sólo es válida con N = 1",
+      "No necesita bit de validez"],
+   c:1, e:"Mezcla los dos esquemas: cada bloque cae en un <b>conjunto</b> (como en directa) y dentro del conjunto se admiten <b>N</b> entradas (como en asociativa)."},
+
+  {t:"Tema 5", q:"Las <b>cuatro</b> métricas de rendimiento de una caché son…",
+   o:["Tasa de acierto, tiempo de acierto, penalización por fallo y eficiencia",
+      "Frecuencia, voltaje, latencia y ancho de banda",
+      "MIPS, MFLOPS, CPI y tiempo de CPU",
+      "Coherencia, consistencia, durabilidad y aislamiento"],
+   c:0, e:"<b>Tasa de acierto</b>, <b>tiempo de acierto</b>, <b>penalización por fallo</b> y <b>eficiencia</b>."}
+];
+
+const t_chips=document.getElementById('test-chips');
+const t_listEl=document.getElementById('test-list');
+const t_done=document.getElementById('t-done'), t_total=document.getElementById('t-total');
+const t_ok=document.getElementById('t-ok'), t_ko=document.getElementById('t-ko');
+const t_grade=document.getElementById('t-grade'), t_prog=document.getElementById('t-prog');
+
+let tFilter="Todos";
+let tOrder=[];        // índices originales en TEST en el orden de render
+const tAnswered=Array(TEST.length).fill(null); // índice de la opción elegida por pregunta original (0..3) o null
+
+temas.forEach(name=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.textContent=name;
+  b.setAttribute('aria-pressed', name===tFilter);
+  b.addEventListener('click',()=>{
+    tFilter=name;
+    [...t_chips.children].forEach(c=>c.setAttribute('aria-pressed', c.textContent===name));
+    tBuildOrder();
+    renderTest();
+  });
+  t_chips.appendChild(b);
+});
+
+function tBuildOrder(){
+  tOrder = TEST.map((_,i)=>i).filter(i=> tFilter==="Todos" || TEST[i].t===tFilter);
+}
+
+function renderTest(){
+  t_listEl.innerHTML='';
+  if(tOrder.length===0){
+    t_listEl.innerHTML='<div class="test-done">No hay preguntas para este filtro.</div>';
+    updateScore();
+    return;
+  }
+  let n=1;
+  tOrder.forEach(origIdx=>{
+    const q=TEST[origIdx];
+    const card=document.createElement('div');
+    card.className='qcard';
+    card.dataset.orig=String(origIdx);
+    const letters=['A','B','C','D'];
+    const opts=q.o.map((opt,i)=>
+      `<button class="opt" data-i="${i}" data-letter="${letters[i]}">${opt}</button>`
+    ).join('');
+    card.innerHTML=`
+      <div class="qcat">${q.t} · Pregunta ${n}</div>
+      <div class="qtext">${q.q}</div>
+      <div class="opts">${opts}</div>
+      <div class="expl"><b>Explicación.</b> ${q.e}</div>`;
+    t_listEl.appendChild(card);
+    n++;
+  });
+  applyAnswered();
+  updateScore();
+}
+
+function applyAnswered(){
+  [...t_listEl.querySelectorAll('.qcard')].forEach(card=>{
+    const origIdx=parseInt(card.dataset.orig,10);
+    const ans=tAnswered[origIdx];
+    if(ans==null) return;
+    const correct=TEST[origIdx].c;
+    card.classList.add('answered');
+    [...card.querySelectorAll('.opt')].forEach(btn=>{
+      const i=parseInt(btn.dataset.i,10);
+      btn.disabled=true;
+      if(i===correct) btn.classList.add('correct');
+      else if(i===ans) btn.classList.add('wrong');
+    });
+  });
+}
+
+function updateScore(){
+  const total=tOrder.length;
+  let done=0, ok=0, ko=0;
+  tOrder.forEach(origIdx=>{
+    const ans=tAnswered[origIdx];
+    if(ans!=null){
+      done++;
+      if(ans===TEST[origIdx].c) ok++; else ko++;
+    }
+  });
+  t_total.textContent=total;
+  t_done.textContent=done;
+  t_ok.textContent=ok;
+  t_ko.textContent=ko;
+  t_prog.style.width = total? `${(done/total)*100}%` : '0%';
+  if(done===0){ t_grade.textContent='–/10'; }
+  else{
+    const grade = (ok/done)*10;
+    t_grade.textContent = `${grade.toFixed(1).replace('.',',')}/10`;
+  }
+}
+
+t_listEl.addEventListener('click', e=>{
+  const btn=e.target.closest('.opt'); if(!btn) return;
+  const card=btn.closest('.qcard'); if(!card) return;
+  const origIdx=parseInt(card.dataset.orig,10);
+  if(tAnswered[origIdx]!=null) return;        // ya contestada → bloqueada
+  tAnswered[origIdx]=parseInt(btn.dataset.i,10);
+  applyAnswered();
+  updateScore();
+});
+
+function tShuffle(){
+  for(let i=tOrder.length-1;i>0;i--){
+    const j=(Math.random()*(i+1))|0;
+    [tOrder[i],tOrder[j]]=[tOrder[j],tOrder[i]];
+  }
+  renderTest();
+}
+
+function tReset(){
+  tAnswered.fill(null);
+  renderTest();
+}
+
+document.getElementById('t-shuffle').addEventListener('click',tShuffle);
+document.getElementById('t-reset').addEventListener('click',tReset);
+
+tBuildOrder();
+renderTest();
 </script>
 </body>
 </html>
